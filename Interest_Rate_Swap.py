@@ -74,7 +74,16 @@ class InterestRateSwap:
         df["Flotante"] = df["Fechas"].apply(InterpolacionLineal, args=(calen_flotante, flotante))
         df["Descuentos"]=df["Fechas"].apply(InterpolacionLineal, args=(calen_desc, descuentos))
         
-        df["Sumando"] = ((df["Flotante"]-fix_rate)*df["Plazo"]/conv) / (1 + (df["Descuentos"]*df["Tau"]/conv))
+        # Calculo de tasas forward
+        desc_1_dia=np.exp(-flotante[0]*((spot-today).days)/conv)
+        auxl= np.array(np.zeros([len(df['Flotante'])]))
+        auxl[0]=desc_1_dia*(1+df['Flotante'][0]*df['Tau'][0])**(-1)
+        for i in range(1,len(df['Flotante'])):
+            auxl[i]=(1-df['Flotante'][i]*sum(df['Tau'][:i]*auxl[:i]))/(1+df['Flotante'][i]*df['Tau'][i])
+        df['Cupon_Flotante'] = auxl
+        df['Forward_Flotante'] = (df['Cupon_Flotante'] - df['Cupon_Flotante'].shift(1))/ (df['Tau']*df['Cupon_Flotante'].shift(1))
+        df['Forward_Flotante'][0] = df['Flotante'][0]
+        df["Sumando"] = ((df["Forward_Flotante"]-fix_rate)*df["Plazo"]/conv) / (1 + (df["Descuentos"]*df["Tau"]/conv))
         
         self.precio =  M*((-1)**payer)*df["Sumando"].sum()
         self.n_cupones = n
@@ -82,7 +91,7 @@ class InterestRateSwap:
         self.posicion = "Payer" if payer else "Receiver"
         self.convencion = conv
         self.fija = fix_rate
-        self.flotante = df[["Fechas","Flotante"]]
+        self.flotante = df[["Fechas","Forward_Flotante"]]
         self.descuentos = df[["Fechas", "Descuentos"]]
         self.summary = df
         
@@ -111,8 +120,8 @@ class InterestRateSwap:
             sns.set_style('darkgrid')
             sns.set_palette('tab10')
             plt.figure(figsize = (12,8))
-            ax = sns.lineplot(x = self.summary['Fechas'], y = self.summary['Flotante'], color = 'red')
-            ax.set_title("Curva de Tasas Flotantes",fontsize = '25')
+            ax = sns.lineplot(x = self.summary['Fechas'], y = self.summary['Forward_Flotante'], color = 'red')
+            ax.set_title("Curva de Tasas Forward Flotantes",fontsize = '25')
             plt.show()
             
             return
