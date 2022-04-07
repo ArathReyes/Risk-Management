@@ -43,7 +43,7 @@ class InterestRateSwap:
     def compute(self, M, n, fix_rate, flotante,calen_flotante, descuentos, calen_desc, 
                 plazos, tau,  payer = False, act_360 = True):
         """
-        M: Nocinal
+        M: Nocoinal
         n: # de cupones
         fix_rate: Tasa fija de la pata larga del IRS
         flotante: Curva de tasas de mercado (la que encuentras en BANXICO) de la pata corta
@@ -75,14 +75,20 @@ class InterestRateSwap:
         df["Descuentos"]=df["Fechas"].apply(InterpolacionLineal, args=(calen_desc, descuentos))
         
         # Calculo de tasas forward
-        desc_1_dia=np.exp(-flotante[0]*((spot-today).days)/conv)
-        auxl= np.array(np.zeros([len(df['Flotante'])]))
-        auxl[0]=desc_1_dia*(1+df['Flotante'][0]*df['Tau'][0])**(-1)
-        for i in range(1,len(df['Flotante'])):
-            auxl[i]=(1-df['Flotante'][i]*sum(df['Tau'][:i]*auxl[:i]))/(1+df['Flotante'][i]*df['Tau'][i])
-        df['Cupon_Flotante'] = auxl
-        df['Forward_Flotante'] = (df['Cupon_Flotante'] - df['Cupon_Flotante'].shift(1))/ (df['Tau']*df['Cupon_Flotante'].shift(1))
+        df['Forward_Flotante'] = (1/(aux['Desde Spot']-aux['Desde Spot'].shift(1)))
+        *(((1+df['Flotante']*aux['Desde Spot'])/(1+df['Flotante'].shift(1)*aux['Desde Spot'].shift(1))) - 1)
         df['Forward_Flotante'][0] = df['Flotante'][0]
+        
+        #2
+        # desc_1_dia=np.exp(-flotante[0]*((spot-today).days)/conv)
+        # auxl= np.array(np.zeros([len(df['Flotante'])]))
+        # auxl[0]=desc_1_dia*(1+df['Flotante'][0]*df['Tau'][0])**(-1)
+        # for i in range(1,len(df['Flotante'])):
+        #     auxl[i]=(1-df['Flotante'][i]*sum(df['Tau'][:i]*auxl[:i]))/(1+df['Flotante'][i]*df['Tau'][i])
+        # df['Cupon_Flotante'] = auxl
+        # df['Forward_Flotante'] = (df['Cupon_Flotante'] - df['Cupon_Flotante'].shift(1))/ (df['Tau']*df['Cupon_Flotante'].shift(1))
+        # df['Forward_Flotante'][0] = df['Flotante'][0]
+        
         df["Sumando"] = ((df["Forward_Flotante"]-fix_rate)*df["Plazo"]/conv) / (1 + (df["Descuentos"]*df["Tau"]/conv))
         
         self.precio =  M*((-1)**payer)*df["Sumando"].sum()
