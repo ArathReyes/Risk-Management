@@ -75,8 +75,8 @@ class InterestRateSwap:
         df["Descuentos"]=df["Fechas"].apply(InterpolacionLineal, args=(calen_desc, descuentos))
         
         # Calculo de tasas forward
-        df['Forward_Flotante'] = (1/(aux['Desde Spot']-aux['Desde Spot'].shift(1)))
-        *(((1+df['Flotante']*aux['Desde Spot'])/(1+df['Flotante'].shift(1)*aux['Desde Spot'].shift(1))) - 1)
+        df['Forward_Flotante'] = (conv/(aux['Desde Spot']-aux['Desde Spot'].shift(1)))
+        *(((1+(df['Flotante']*aux['Desde Spot']/conv))/(1+(df['Flotante'].shift(1)*aux['Desde Spot'].shift(1)/conv))) - 1)
         df['Forward_Flotante'][0] = df['Flotante'][0]
         
         #2
