@@ -40,10 +40,10 @@ class InterestRateSwap:
         self.descuentos = None
         self.summary = None
         
-    def compute(self, M, n, fix_rate, flotante,calen_flotante, descuentos, calen_desc, 
+    def compute(self, fval, M, n, fix_rate, flotante,calen_flotante, descuentos, calen_desc, 
                 plazos, tau,  payer = False, act_360 = True):
         """
-        M: Nocoinal
+        M: Nocional
         n: # de cupones
         fix_rate: Tasa fija de la pata larga del IRS
         flotante: Curva de tasas de mercado (la que encuentras en BANXICO) de la pata corta
@@ -55,9 +55,8 @@ class InterestRateSwap:
         payer: Dummy; 1 si paga fija, 0 si paga flotante
         act_360: Dummy; tipo de convención 1 si act/360, 0 si act/365
         """
-        today = datetime.now()
-        today = datetime(today.year, today.month, today.day)
-        spot = today + timedelta(1)
+
+        spot = fval
         
         if act_360:
             conv = 360
@@ -75,8 +74,7 @@ class InterestRateSwap:
         df["Descuentos"]=df["Fechas"].apply(InterpolacionLineal, args=(calen_desc, descuentos))
         
         # Calculo de tasas forward
-        df['Forward_Flotante'] = (conv/(aux['Desde Spot']-aux['Desde Spot'].shift(1)))
-        *(((1+(df['Flotante']*aux['Desde Spot']/conv))/(1+(df['Flotante'].shift(1)*aux['Desde Spot'].shift(1)/conv))) - 1)
+        df['Forward_Flotante'] = (conv/(aux['Desde Spot']-aux['Desde Spot'].shift(1)))*(((1+(df['Flotante']*aux['Desde Spot']/conv))/(1+(df['Flotante'].shift(1)*aux['Desde Spot'].shift(1)/conv))) - 1)
         df['Forward_Flotante'][0] = df['Flotante'][0]
         
         #2
@@ -136,43 +134,104 @@ class InterestRateSwap:
         
         
 
-def InterestRateSwap(M, n, fix_rate, flotante,calen_flotante, descuentos, calen_desc,
-                     plazos, tau,  payer = False, act_360 = True):
-    """
-    M: Nocinal
-    n: # de cupones
-    fix_rate: Tasa fija de la pata larga del IRS
-    flotante: Curva de tasas de mercado (la que encuentras en BANXICO) de la pata corta
-    calen_flotante: Las fechas dadas por la curva de flotante
-    descuentos: Curca de tasas de descuento de mercado para valuar el IRS
-    calen_desc: Las fechas dadas por la curva de descuentos
-    plazos : Lista de plazo del i -ésimo cupón (habiles)
-    tau: Plazo en dias del i-ésimo cupón. (naturales)
-    payer: Dummy; 1 si paga fija, 0 si paga flotante
-    act_360: Dummy; tipo de convención 1 si act/360, 0 si act/365
-    """
-    today = datetime.now()
-    today = datetime(today.year, today.month, today.day)
-    spot = today + timedelta(1)
+# def InterestRateSwap(M, n, fix_rate, flotante,calen_flotante, descuentos, calen_desc,
+#                      plazos, tau,  payer = False, act_360 = True):
+#     """
+#     M: Nocinal
+#     n: # de cupones
+#     fix_rate: Tasa fija de la pata larga del IRS
+#     flotante: Curva de tasas de mercado (la que encuentras en BANXICO) de la pata corta
+#     calen_flotante: Las fechas dadas por la curva de flotante
+#     descuentos: Curca de tasas de descuento de mercado para valuar el IRS
+#     calen_desc: Las fechas dadas por la curva de descuentos
+#     plazos : Lista de plazo del i -ésimo cupón (habiles)
+#     tau: Plazo en dias del i-ésimo cupón. (naturales)
+#     payer: Dummy; 1 si paga fija, 0 si paga flotante
+#     act_360: Dummy; tipo de convención 1 si act/360, 0 si act/365
+#     """
+#     today = datetime.now()
+#     today = datetime(today.year, today.month, today.day)
+#     spot = today + timedelta(1)
     
-    if act_360:
-        conv = 360
-    else:
-        conv = 365
+#     if act_360:
+#         conv = 360
+#     else:
+#         conv = 365
         
-    aux = pd.DataFrame({"Cupon":list(range(1,n+1)), "Tau":tau})
-    aux["Desde Spot"] = aux["Tau"].cumsum()
-    aux["Fecha"] = aux["Desde Spot"].apply(lambda x: timedelta(x) + spot)
+#     aux = pd.DataFrame({"Cupon":list(range(1,n+1)), "Tau":tau})
+#     aux["Desde Spot"] = aux["Tau"].cumsum()
+#     aux["Fecha"] = aux["Desde Spot"].apply(lambda x: timedelta(x) + spot)
     
-    # aux2 = pd.DateFrame({"Cal Flotante":calen_flotante, "Flotante":flotante})
-    # aux3 = pd.DataFrame({"Cal Descuento": calen_desc, "Descuentos": descuentos})
+#     # aux2 = pd.DateFrame({"Cal Flotante":calen_flotante, "Flotante":flotante})
+#     # aux3 = pd.DataFrame({"Cal Descuento": calen_desc, "Descuentos": descuentos})
     
-    df = pd.DataFrame({"Cupon":list(range(1,n+1)), "Plazo": plazos, "Tau": tau})
+#     df = pd.DataFrame({"Cupon":list(range(1,n+1)), "Plazo": plazos, "Tau": tau})
             
-    df["Fechas"] =  aux["Fecha"]
-    df["Flotante"] = df["Fechas"].apply(InterpolacionLineal, args=(calen_flotante, flotante))
-    df["Descuentos"]=df["Fechas"].apply(InterpolacionLineal, args=(calen_desc, descuentos))
+#     df["Fechas"] =  aux["Fecha"]
+#     df["Flotante"] = df["Fechas"].apply(InterpolacionLineal, args=(calen_flotante, flotante))
+#     df["Descuentos"]=df["Fechas"].apply(InterpolacionLineal, args=(calen_desc, descuentos))
     
-    df["Sumando"] = ((df["Flotante"]-fix_rate)*df["Plazo"]/conv) / (1 + (df["Descuentos"]*df["Tau"]/conv))
+#     df["Sumando"] = ((df["Flotante"]-fix_rate)*df["Plazo"]/conv) / (1 + (df["Descuentos"]*df["Tau"]/conv))
     
-    return M*((-1)**payer)*df["Sumando"].sum()
+#     return M*((-1)**payer)*df["Sumando"].sum()
+
+# PRUEBA
+
+path = "C:\\Users\\Arath Reyes\\Documents\\GitHub\\Value-at-Risk\\data\\"
+cupon = pd.read_csv(path + "tasa_DIRS_SW_OP.txt", delimiter = "\t")
+cupon = cupon.rename(columns = {'DATE ':'DATE'})
+cupon['DATE'] =cupon['DATE'].apply(lambda x: str(x))
+cupon['DATE'] = cupon['DATE'].apply(lambda x: datetime(int(x[:4]), int(x[4:6]), int(x[6:])))
+
+descuento = pd.read_csv(path + "tasa_TIIE_SW_OP.txt", delimiter = "\t")
+descuento = descuento.rename(columns = {'DATE ':'DATE'})
+descuento['DATE'] =descuento['DATE'].apply(lambda x: str(x))
+descuento['DATE'] = descuento['DATE'].apply(lambda x: datetime(int(x[:4]), int(x[4:6]), int(x[6:])))
+
+
+fval = datetime(2020,3,6)
+    
+flotante = cupon.head(1)
+flotante = flotante.iloc[:,1:]
+calen_flotante = flotante.columns
+flotante = flotante.values[0]/100
+flotante = list(flotante)
+calen_flotante = [fval + timedelta(int(i)) for i in calen_flotante]
+
+descuentos = descuento.head(1)
+descuentos = descuentos.iloc[:,1:]
+calen_desc = descuentos.columns
+descuentos = descuentos.values[0]/100
+descuentos = list(descuentos)
+calen_desc = [fval + timedelta(int(i)) for i in calen_desc]
+
+vencimientos = 360
+dias = 28
+
+n = int(vencimientos/dias)
+if n == (vencimientos/dias):
+    plazos = [dias]*n
+    tau = plazos
+else:
+    plazos = [vencimientos-n*dias] + [dias]*(n-1)
+    tau = plazos
+
+n = int(588/28)
+M = -1600
+fix_rate = 0.079
+plazos = [28]*n
+tau = [28]*n
+irs = InterestRateSwap()
+irs.compute(fval, M, n, fix_rate, flotante,calen_flotante, descuentos, calen_desc, plazos, tau)
+precios = [irs.precio]
+
+n = int(360/28)
+M = 100000
+fix_rate = 0.075
+plazos = [360-n*28] + [28]*(n-1)
+tau = [360-n*28] + [28]*(n-1)
+
+irs = InterestRateSwap()
+irs.compute(fval, M, n, fix_rate, flotante,calen_flotante, descuentos, calen_desc, plazos, tau)
+precios.append(irs.precio)
+
